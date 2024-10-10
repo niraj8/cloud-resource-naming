@@ -7,36 +7,38 @@ import (
 	"github.com/niraj8/cloud-resource-naming/pkg/aws"
 )
 
-// TestS3Validator tests the S3Validator
-func TestS3Validator(t *testing.T) {
-
+// TestS3BucketName tests the S3BucketName function
+func TestS3BucketName(t *testing.T) {
 	tests := []struct {
 		name      string
 		bucket    string
+		opts      []aws.S3BucketNameOptions
 		expectErr bool
 	}{
-		{"Valid bucket name", "valid-bucket-name", false},
-		{"Too short", "ab", true},
-		{"Too long", strings.Repeat("a", 64), true},
-		{"Invalid characters", "Invalid_Bucket_Name", true},
-		{"Adjacent periods", "invalid..bucket", true},
-		{"IP address format", "192.168.0.1", true},
-		{"Prefix xn--", "xn--bucket", true},
-		{"Prefix sthree-", "sthree-bucket", true},
-		{"Prefix sthree-configurator", "sthree-configurator-bucket", true},
-		{"Prefix amzn-s3-demo-", "amzn-s3-demo-bucket", true},
-		{"Suffix -s3alias", "bucket-s3alias", true},
-		{"Suffix --ol-s3", "bucket--ol-s3", true},
-		{"Suffix .mrap", "bucket.mrap", true},
-		{"Suffix --x-s3", "bucket--x-s3", true},
-		{"Contains dot", "bucket.name", true},
+		{"Valid bucket name", "valid-bucket-name", nil, false},
+		{"Too short", "ab", nil, true},
+		{"Too long", strings.Repeat("a", 64), nil, true},
+		{"Invalid characters", "Invalid_Bucket_Name", nil, true},
+		{"Adjacent periods", "invalid..bucket", nil, true},
+		{"IP address format", "192.168.0.1", nil, true},
+		{"Prefix xn--", "xn--bucket", nil, true},
+		{"Prefix sthree-", "sthree-bucket", nil, true},
+		{"Prefix sthree-configurator", "sthree-configurator-bucket", nil, true},
+		{"Prefix amzn-s3-demo-", "amzn-s3-demo-bucket", nil, true},
+		{"Suffix -s3alias", "bucket-s3alias", nil, true},
+		{"Suffix --ol-s3", "bucket--ol-s3", nil, true},
+		{"Suffix .mrap", "bucket.mrap", nil, true},
+		{"Suffix --x-s3", "bucket--x-s3", nil, true},
+		{"Valid with dots", "my.bucket.name", nil, false},
+		{"Transfer acceleration enabled with dots", "my.bucket.name", []aws.S3BucketNameOptions{{TransferAccelerationEnabled: true}}, true},
+		{"Transfer acceleration enabled without dots", "mybucketname", []aws.S3BucketNameOptions{{TransferAccelerationEnabled: true}}, false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := aws.S3BucketName(tt.bucket)
+			err := aws.S3BucketName(tt.bucket, tt.opts...)
 			if (err != nil) != tt.expectErr {
-				t.Errorf("Validate() error = %v, expectErr %v", err, tt.expectErr)
+				t.Errorf("S3BucketName() error = %v, expectErr %v", err, tt.expectErr)
 			}
 		})
 	}

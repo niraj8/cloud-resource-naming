@@ -6,7 +6,12 @@ import (
 	"strings"
 )
 
-func S3BucketName(name string) error {
+type S3BucketNameOptions struct {
+	TransferAccelerationEnabled bool
+}
+
+// S3BucketName validates an S3 bucket name for general purpose buckets
+func S3BucketName(name string, opts ...S3BucketNameOptions) error {
 	if len(name) < 3 || len(name) > 63 {
 		return errors.New("bucket name must be between 3 and 63 characters long")
 	}
@@ -51,8 +56,10 @@ func S3BucketName(name string) error {
 		return errors.New("bucket name must not end with the suffix --x-s3")
 	}
 
-	if strings.Contains(name, ".") {
-		return errors.New("buckets used with Amazon S3 Transfer Acceleration can't have dots (.) in their names")
+	if len(opts) > 0 && opts[0].TransferAccelerationEnabled {
+		if strings.Contains(name, ".") {
+			return errors.New("buckets used with Amazon S3 Transfer Acceleration can't have dots (.) in their names")
+		}
 	}
 
 	return nil
