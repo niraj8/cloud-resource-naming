@@ -45,3 +45,55 @@ func TestS3BucketName(t *testing.T) {
 		})
 	}
 }
+
+func TestS3ObjectNameDefaultOptions(t *testing.T) {
+	tests := []struct {
+		name      string
+		object    string
+		opts      []aws.S3ObjectNameOptions
+		expectErr bool
+	}{
+		{"Valid object name", "valid-object-name.txt", nil, false},
+		{"Too long", strings.Repeat("a", 1025), nil, true},
+		{"Empty name", "", nil, true},
+		{"Unsafe characters", "object/with/slash.txt", nil, true},
+		{"Ending with dot", "object-name.", nil, true},
+		{"Starting with ./", "./object-name.txt", nil, true},
+		{"Starting with ../", "../object-name.txt", nil, true},
+		{"Valid with special characters", "ABCabc123!_.*'()-", nil, false},
+		{"Invalid character", "object name with space.txt", nil, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := aws.S3ObjectName(tt.object, tt.opts...)
+			if (err != nil) != tt.expectErr {
+				t.Errorf("S3ObjectName() error = %v, expectErr %v", err, tt.expectErr)
+			}
+		})
+	}
+}
+
+func TestS3ObjectNameCustomOptions(t *testing.T) {
+	tests := []struct {
+		name      string
+		object    string
+		opts      []aws.S3ObjectNameOptions
+		expectErr bool
+	}{
+		{"Unsafe characters allowed", "object/with/slash.txt", []aws.S3ObjectNameOptions{{SafeCharactersOnly: false}}, false},
+		{"Console unsafe allowed", "object-name.", []aws.S3ObjectNameOptions{{AWSConsoleSafe: false}}, false},
+		{"Starting with ./", "./object-name.txt", []aws.S3ObjectNameOptions{{AWSConsoleSafe: true}}, true},
+		{"Programmatic unsafe not allowed", "../object-name.txt", []aws.S3ObjectNameOptions{{AWSProgrammaticSafe: true}}, true},
+		{"All options disabled", "object name with space.txt", []aws.S3ObjectNameOptions{{SafeCharactersOnly: false, AWSConsoleSafe: false, AWSProgrammaticSafe: false}}, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := aws.S3ObjectName(tt.object, tt.opts...)
+			if (err != nil) != tt.expectErr {
+				t.Errorf("S3ObjectName() error = %v, expectErr %v", err, tt.expectErr)
+			}
+		})
+	}
+}

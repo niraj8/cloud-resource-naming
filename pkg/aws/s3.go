@@ -11,6 +11,7 @@ type S3BucketNameOptions struct {
 }
 
 // S3BucketName validates an S3 bucket name for general purpose buckets
+// https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html
 func S3BucketName(name string, opts ...S3BucketNameOptions) error {
 	if len(name) < 3 || len(name) > 63 {
 		return errors.New("bucket name must be between 3 and 63 characters long")
@@ -59,6 +60,57 @@ func S3BucketName(name string, opts ...S3BucketNameOptions) error {
 	if len(opts) > 0 && opts[0].TransferAccelerationEnabled {
 		if strings.Contains(name, ".") {
 			return errors.New("buckets used with Amazon S3 Transfer Acceleration can't have dots (.) in their names")
+		}
+	}
+
+	return nil
+}
+
+type S3ObjectNameOptions struct {
+	SafeCharactersOnly  bool
+	AWSConsoleSafe      bool
+	AWSProgrammaticSafe bool
+}
+
+// Default S3ObjectNameOptions
+var DefaultS3ObjectNameOptions = S3ObjectNameOptions{
+	SafeCharactersOnly:  true,
+	AWSConsoleSafe:      true,
+	AWSProgrammaticSafe: true,
+}
+
+// S3ObjectName validates an S3 object name
+// The options provided encode generally accepted best practices for S3 object naming
+// https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-keys.html
+func S3ObjectName(name string, opts ...S3ObjectNameOptions) error {
+	opts = append(opts, DefaultS3ObjectNameOptions)
+	if len(name) < 1 || len(name) > 1024 {
+		return errors.New("object name must be between 1 and 1024 characters long")
+	}
+
+	// safe_characters_set := []string{"0-9", "a-z", "A-Z", "!_.*'()-"}
+	safe_characters_regex := regexp.MustCompile(`^[0-9a-zA-Z!_.*'()-]+$`)
+	if len(opts) > 0 && opts[0].SafeCharactersOnly && !safe_characters_regex.MatchString(name) {
+		return errors.New("object name can only contain the following characters: 0-9, a-z, A-Z, !, _, ., *, ', (, ) and -")
+	}
+
+	// console safe validations
+	// 1. should not end with a dot
+	// 2. should not have a prefix of ./ or ../
+	if len(opts) > 0 && opts[0].AWSConsoleSafe {
+		if strings.HasSuffix(name, ".") {
+			return errors.New("object name should not end with a dot")
+		}
+		if strings.HasPrefix(name, "./") || strings.HasPrefix(name, "../") {
+			return errors.New("object name should not have a prefix of ./ or ../")
+		}
+	}
+
+	// validations for SDK and CLI downloading of objects
+	// 1. should not have a prefix of ../
+	if len(opts) > 0 && opts[0].AWSProgrammaticSafe {
+		if strings.HasPrefix(name, "../") {
+			return errors.New("object name should not have a prefix of ../")
 		}
 	}
 
