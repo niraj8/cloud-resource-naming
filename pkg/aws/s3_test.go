@@ -18,7 +18,8 @@ func TestS3BucketName(t *testing.T) {
 		{"Valid bucket name", "valid-bucket-name", nil, false},
 		{"Too short", "ab", nil, true},
 		{"Too long", strings.Repeat("a", 64), nil, true},
-		{"Invalid characters", "Invalid_Bucket_Name", nil, true},
+		{"Uppercase characters", "InvalidBucketName", nil, true},
+		{"doc_example_bucket", "doc_example_bucket", nil, true},
 		{"Adjacent periods", "invalid..bucket", nil, true},
 		{"IP address format", "192.168.0.1", nil, true},
 		{"Prefix xn--", "xn--bucket", nil, true},
@@ -30,6 +31,7 @@ func TestS3BucketName(t *testing.T) {
 		{"Suffix .mrap", "bucket.mrap", nil, true},
 		{"Suffix --x-s3", "bucket--x-s3", nil, true},
 		{"Valid with dots", "my.bucket.name", nil, false},
+		{"Invalid name", "amzn-s3-demo-bucket-", nil, true},
 		{"Transfer acceleration enabled with dots", "my.bucket.name", []aws.S3BucketNameOptions{{TransferAccelerationEnabled: true}}, true},
 		{"Transfer acceleration enabled without dots", "mybucketname", []aws.S3BucketNameOptions{{TransferAccelerationEnabled: true}}, false},
 	}
